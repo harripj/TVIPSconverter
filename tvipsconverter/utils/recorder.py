@@ -578,7 +578,9 @@ class Recorder(QThread):
             # get all peaks in blurred image (at least sigma away from each other)
             coords = peak_local_max(blurred, sigma, exclude_border=1)
             # get peak closest to center
-            coords_center = coords[np.linalg.norm(coords - center, axis=1).argmin()]
+            coords_center = coords[
+                np.linalg.norm(coords - (side // 2, side // 2), axis=1).argmin()
+            ]
             # and reintroduce offset
             ds.attrs["Center location"] = coords_center + (center - side // 2)
 
