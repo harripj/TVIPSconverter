@@ -579,7 +579,7 @@ class Recorder(QThread):
             coords = peak_local_max(blurred, sigma, exclude_border=1)
             # get peak closest to center
             coords_center = coords[
-                np.linalg.norm(coords - (side // 2, side // 2), axis=1).argmin()
+                np.linalg.norm(coords - np.array(blurred.shape) // 2, axis=1).argmin()
             ]
             # and reintroduce offset
             ds.attrs["Center location"] = coords_center + (center - side // 2)
