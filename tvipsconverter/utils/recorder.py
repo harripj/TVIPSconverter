@@ -1,6 +1,7 @@
 ﻿import numpy as np
 import os.path
 from scipy.ndimage import gaussian_filter
+from skimage.feature import peak_local_max
 from tifffile import FileHandle
 import math
 import h5py
@@ -568,9 +569,18 @@ class Recorder(QThread):
             # blur crop and find maximum -> use as center location
             blurred = gaussian_filter(crop, sigma, mode="nearest")
             # add crop offset (center - side//2) to get actual location on frame
-            ds.attrs["Center location"] = np.unravel_index(
-                blurred.argmax(), crop.shape
-            ) + (center - side // 2)
+
+            # NOTE: argmax does not worj in some cases where direct beam
+            # is not most intense reflection
+            # leave code here for legacy
+            # coords_center =  np.unravel_index(blurred.argmax(), crop.shape)
+
+            # get all peaks in blurred image (at least sigma away from each other)
+            coords = peak_local_max(blurred, sigma, exclude_border=1)
+            # get peak closest to center
+            coords_center = coords[np.linalg.norm(coords - center, axis=1).argmin()]
+            # and reintroduce offset
+            ds.attrs["Center location"] = coords_center + (center - side // 2)
 
     def _update_gui_progess(self):
         """If using the GUI update features with progress"""
