@@ -431,7 +431,8 @@ class ConnectedWidget(rawgui):
                 imrange=(start_frame, end_frame),
                 calcmax=self.checkBox_maxiumum_image.isChecked(),  # options kwarg
                 calcave=self.checkBox_average_image.isChecked(),  # options kwarg
-                refine_center=(
+                calcsum=self.checkBox_sum_image.isChecked(),  # options kwarg
+                refine_center=(  # options kwarg
                     self.checkBox_refine_center.isChecked(),
                     self.spinBox_refine_center_diameter.value(),
                     self.spinBox_refine_center_sigma.value(),
