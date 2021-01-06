@@ -2,6 +2,7 @@
 import math
 from scipy.ndimage import median_filter, convolve
 from PIL import Image
+import itertools
 
 
 def _get_dtype_min_max(dtype):
@@ -205,23 +206,64 @@ def bin2(a, factor):
     return binned
 
 
-def bin_box(a, factor):
+def bin_box(arr, factor, axis=None):
     """
 
     Use box averaging to bin the images.
 
+    Parameters
+    ----------
+    arr: ndarray
+        Input array to box.
+    factor: int
+        The binning factor.
+    axis: None, int, or tuple of ints
+        Axis or axes to apply binning to.
+        If None then all axes are binned.
+
+    Returns
+    -------
+    binned: ndarray
+        The binned array.
+
     """
+
+    arr = np.asarray(arr)
+
+    if axis is None:
+        axis = tuple(range(arr.ndim))
+    else:
+        if isinstance(axis, (int, np.integer)):
+            axes = (axis,)
+        else:
+            assert isinstance(
+                axis, (list, tuple)
+            ), "axes must be either int, list, or tuple."
+
+    axis = tuple(a if a >= 0 else a + arr.ndim for a in axis)  # handle negative indices
+    assert max(axis) <= arr.ndim, "axes must be within arr.ndim."
     assert all(
-        not i % factor for i in a.shape
-    ), "array shape is not factorisable by factor."
+        isinstance(i, (int, np.integer)) for i in axis
+    ), "All axes must be integers."
+
+    assert all(
+        not arr.shape[i] % factor for i in filter(lambda x: x is not None, axis)
+    ), f"array shape is not factorisable by factor {factor}."
+
     # should work ndim
-    slices = tuple(
-        tuple((slice(j, None, factor)) for i in range(a.ndim)) for j in range(factor)
-    )
+    slices = []
+    for v in itertools.product(
+        range(factor), repeat=len(axis)
+    ):  # calculate all slicing offsets in all dimensions
+        v = iter(v)
+        temp = []
+        for i in range(arr.ndim):
+            # add slice object if axes is specified, otherwise no slicing
+            temp.append(slice(next(v), None, factor) if i in axis else slice(None))
+        slices.append(tuple(temp))
 
     # stack th offset slices and take mean down stack axis to finish binning
-    cube = np.stack([a[s] for s in slices], axis=0)
-    return cube.mean(axis=0)
+    return np.stack(tuple(arr[s] for s in slices), axis=0).mean(axis=0)
 
 
 def getElectronWavelength(ht):
