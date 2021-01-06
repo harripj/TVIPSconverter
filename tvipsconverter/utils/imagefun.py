@@ -257,7 +257,7 @@ def bin_box(arr, factor, axis=None, dtype=False):
 
     # should work ndim
     slices = []
-    for v in product(
+    for v in itertools.product(
         range(factor), repeat=len(axis)
     ):  # calculate all slicing offsets in all dimensions
         v = iter(v)
