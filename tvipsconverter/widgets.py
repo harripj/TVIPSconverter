@@ -162,7 +162,9 @@ class ConnectedWidget(rawgui):
                 scene = QGraphicsScene()
                 scene.addWidget(canvas)
                 self.graphicsView_3.setScene(scene)
-                self.graphicsView_3.fitInView(scene.sceneRect(),)
+                self.graphicsView_3.fitInView(
+                    scene.sceneRect(),
+                )
                 self.repaint_widget(self.graphicsView_3)
             except Exception as e:
                 logger.debug(f"Error: {e}")
@@ -647,8 +649,22 @@ class ConnectedWidget(rawgui):
             else:
                 crop = None
 
+            # export binning option setup
+            binning = (
+                self.spinBox_binning_blo.value()
+                if self.checkBox_binning_blo.isChecked()
+                else None
+            )
+
             shape, indexes = f.get_blo_export_data(
-                sdimx, sdimy, start_frame, end_frame, hyst, snakescan, crop=crop
+                sdimx,
+                sdimy,
+                start_frame,
+                end_frame,
+                hyst,
+                snakescan,
+                crop=crop,
+                binning=binning,
             )
             logger.debug(f"Shape: {shape}")
             logger.debug(f"Starting to write {filetyp} file")
@@ -668,11 +684,7 @@ class ConnectedWidget(rawgui):
                         if self.checkBox_clipmax_blo.isChecked()
                         else None
                     ),
-                    binning=(
-                        self.spinBox_binning_blo.value()
-                        if self.checkBox_binning_blo.isChecked()
-                        else None
-                    ),
+                    binning=binning,
                 )
             elif filetyp == ".hspy":
                 self.get_thread = hspf.hspyFileWriter(
@@ -777,13 +789,15 @@ class ConnectedWidget(rawgui):
         # check cropping dimension > 0
         if not xmax - xmin > 0:
             self.update_line(
-                self.statusedit, f"Crop dimension incorrect. Crop x: {xmax - xmin}.",
+                self.statusedit,
+                f"Crop dimension incorrect. Crop x: {xmax - xmin}.",
             )
             self.remove_cropped_region()
             return
         if not ymax - ymin > 0:
             self.update_line(
-                self.statusedit, f"Crop dimension incorrect. Crop y: {ymax - ymin}.",
+                self.statusedit,
+                f"Crop dimension incorrect. Crop y: {ymax - ymin}.",
             )
             self.remove_cropped_region()
             return
@@ -800,7 +814,8 @@ class ConnectedWidget(rawgui):
 
         if self.fig_vbf is None:
             self.update_line(
-                self.statusedit, "No VBF figure plotted yet.",
+                self.statusedit,
+                "No VBF figure plotted yet.",
             )
             return
 
@@ -829,7 +844,8 @@ class ConnectedWidget(rawgui):
         self.fig_vbf.canvas.draw()
 
         self.update_line(
-            self.statusedit, f"Crop dimensions (x, y): ({xmax - xmin}, {ymax - ymin}).",
+            self.statusedit,
+            f"Crop dimensions (x, y): ({xmax - xmin}, {ymax - ymin}).",
         )
 
 

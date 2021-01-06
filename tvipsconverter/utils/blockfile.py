@@ -185,8 +185,7 @@ def get_header_dtype_list(endianess="<"):
 
 
 def get_default_header(endianess="<"):
-    """Returns a header pre-populated with default values.
-    """
+    """Returns a header pre-populated with default values."""
     dt = np.dtype(get_header_dtype_list())
     header = np.zeros((1,), dtype=dt)
     header["ID"][0] = "IMGBLO".encode()
@@ -379,7 +378,10 @@ def file_reader(filename, endianess="<", mmap_mode=None, lazy=False, **kwds):
             "time_zone": time_zone,
             "notes": header["Note"],
         },
-        "Signal": {"signal_type": "diffraction", "record_by": "image",},
+        "Signal": {
+            "signal_type": "diffraction",
+            "record_by": "image",
+        },
     }
     # Create the axis objects for each axis
     dim = data.ndim
@@ -531,7 +533,7 @@ class bloFileWriter(QThread):
                 img = self.fh["ImageStream"][f"Frame_{c}"][:]
 
                 if "binning" in self.options and self.options["binning"] is not None:
-                    img = imagefun.bin_box(img, self.options["binning"])
+                    img = imagefun.bin_box(img, self.options["binning"], dtype=True)
 
                 if "clip_max" in self.options and self.options["clip_max"] is not None:
                     # define default clip limit
@@ -614,4 +616,3 @@ def file_writer_array(filename, array, scan_scale, diff_scale, **kwds):
             dp_head.tofile(f)
             img.astype(endianess + "u1").tofile(f)
             dp_head["ID"] += 1
-
