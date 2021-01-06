@@ -206,7 +206,7 @@ def bin2(a, factor):
     return binned
 
 
-def bin_box(arr, factor, axis=None):
+def bin_box(arr, factor, axis=None, dtype=False):
     """
 
     Use box averaging to bin the images.
@@ -220,6 +220,11 @@ def bin_box(arr, factor, axis=None):
     axis: None, int, or tuple of ints
         Axis or axes to apply binning to.
         If None then all axes are binned.
+    keep_dtype: bool or dtype
+        If True then the output data type will be the same as arr.
+        If False then the output type deafults to np.float.
+        If dtype then this data type will be forced.
+
 
     Returns
     -------
@@ -252,7 +257,7 @@ def bin_box(arr, factor, axis=None):
 
     # should work ndim
     slices = []
-    for v in itertools.product(
+    for v in product(
         range(factor), repeat=len(axis)
     ):  # calculate all slicing offsets in all dimensions
         v = iter(v)
@@ -262,8 +267,15 @@ def bin_box(arr, factor, axis=None):
             temp.append(slice(next(v), None, factor) if i in axis else slice(None))
         slices.append(tuple(temp))
 
-    # stack th offset slices and take mean down stack axis to finish binning
-    return np.stack(tuple(arr[s] for s in slices), axis=0).mean(axis=0)
+    # sort output data type
+    if dtype is True:
+        dtype = arr.dtype
+    elif dtype is False:
+        dtype = None
+    # otherwise assume a valid data type
+
+    # stack the offset slices and take mean down stack axis to finish binning
+    return np.stack(tuple(arr[s] for s in slices), axis=0).mean(axis=0, dtype=dtype)
 
 
 def getElectronWavelength(ht):
