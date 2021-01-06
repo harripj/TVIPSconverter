@@ -1166,9 +1166,9 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>0</y>
+                <y>-53</y>
                 <width>1069</width>
-                <height>629</height>
+                <height>660</height>
                </rect>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1750,6 +1750,29 @@
                      <string>8-bit conversion</string>
                     </property>
                     <layout class="QGridLayout" name="gridLayout_12">
+                     <item row="0" column="0">
+                      <widget class="QCheckBox" name="checkBox_rescale">
+                       <property name="toolTip">
+                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If checked then the intensities in each frame will be rescaled between 0 and 255.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
+                       <property name="text">
+                        <string>Rescale intensities across 8-bit range</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item row="0" column="2">
+                      <widget class="QSpinBox" name="spinBox_clipmax_blo">
+                       <property name="toolTip">
+                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Clip maximum value in diffraction patterns to this value.  It is recommended to use in conjunction with rescale in order to take full advantage of these capabilities.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                       </property>
+                       <property name="maximum">
+                        <number>65535</number>
+                       </property>
+                       <property name="value">
+                        <number>65535</number>
+                       </property>
+                      </widget>
+                     </item>
                      <item row="0" column="1">
                       <widget class="QCheckBox" name="checkBox_clipmax_blo">
                        <property name="toolTip">
@@ -1773,26 +1796,17 @@
                        </property>
                       </spacer>
                      </item>
-                     <item row="0" column="0">
-                      <widget class="QCheckBox" name="checkBox_rescale">
-                       <property name="toolTip">
-                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If checked then the intensities in each frame will be rescaled between 0 and 255.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                       </property>
-                       <property name="text">
-                        <string>Rescale intensities across 8-bit range</string>
+                     <item row="1" column="2">
+                      <widget class="QSpinBox" name="spinBox_binning_blo">
+                       <property name="suffix">
+                        <string>x</string>
                        </property>
                       </widget>
                      </item>
-                     <item row="0" column="2">
-                      <widget class="QSpinBox" name="spinBox_clipmax_blo">
-                       <property name="toolTip">
-                        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Clip maximum value in diffraction patterns to this value.  It is recommended to use in conjunction with rescale in order to take full advantage of these capabilities.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                       </property>
-                       <property name="maximum">
-                        <number>65535</number>
-                       </property>
-                       <property name="value">
-                        <number>65535</number>
+                     <item row="1" column="1">
+                      <widget class="QCheckBox" name="checkBox_binning_blo">
+                       <property name="text">
+                        <string>Apply binning</string>
                        </property>
                       </widget>
                      </item>

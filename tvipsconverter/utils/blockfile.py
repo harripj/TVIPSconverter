@@ -530,14 +530,20 @@ class bloFileWriter(QThread):
                 c = f"{indx}".zfill(6)
                 img = self.fh["ImageStream"][f"Frame_{c}"][:]
 
+                if "binning" in self.options and self.options["binning"] is not None:
+                    img = imagefun.bin_box(img, self.options["binning"])
+
                 if "clip_max" in self.options and self.options["clip_max"] is not None:
+                    # define default clip limit
                     _max = self.options["clip_max"]
                 else:
+                    # use default limit (max)
                     _max = None
 
                 if "rescale" in self.options and self.options["rescale"]:
                     img = imagefun.normalize_convert(img, dtype=np.uint8, max=_max)
                 else:
+                    # apply clipping if required then convert to 8-bit
                     if _max is not None:
                         img[img > _max] = _max
                     img = util.img_as_ubyte(img)

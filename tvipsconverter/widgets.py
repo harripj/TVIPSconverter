@@ -668,6 +668,11 @@ class ConnectedWidget(rawgui):
                         if self.checkBox_clipmax_blo.isChecked()
                         else None
                     ),
+                    binning=(
+                        self.spinBox_binning_blo.value()
+                        if self.checkBox_binning_blo.isChecked()
+                        else None
+                    ),
                 )
             elif filetyp == ".hspy":
                 self.get_thread = hspf.hspyFileWriter(
