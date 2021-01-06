@@ -662,8 +662,9 @@ class Recorder(QThread):
         if "calcave" in self.options and self.options["calcave"]:
             self.scangroup.create_dataset("average_image", data=self.average_image)
         if "calcsum" in self.options and self.options["calcsum"]:
-            self.scangroup.create_dataset('frame_totals', data=np.array(self.frame_total))
-        
+            self.scangroup.create_dataset(
+                "frame_totals", data=np.array(self.frame_total)
+            )
 
     @staticmethod
     def _virtual_bf_mask(arr, centeroffsetpx=(0, 0), radiuspx=10):
@@ -807,6 +808,7 @@ class hdf5Intermediate(h5py.File):
         hyst=0,
         snakescan=True,
         crop=None,
+        binning=None,
     ):
         scan_indexes = self.calculate_scan_export_indexes(
             sdimx=sdimx,
@@ -824,6 +826,11 @@ class hdf5Intermediate(h5py.File):
             sdimy = self.sdimy
         try:
             imshap = self["ImageStream"]["Frame_000000"].shape
+            if binning is not None:
+                assert all(
+                    not i % binning for i in imshap
+                ), f"Binning results in unequal split: {imshap} and binning factor {binning}."
+                imshap = tuple(i // binning for i in imshap)
         except Exception:
             raise Exception("Could not find image size")
         if crop is not None:
@@ -890,8 +897,9 @@ class hdf5Intermediate(h5py.File):
 
                     if (
                         all(i >= 0 for i in (xmin, ymin))
-                        and xmax < sdimx
-                        and ymax < sdimy
+                        # xmax and ymax are tested such that they are le to shape
+                        and xmax <= sdimx
+                        and ymax <= sdimy
                     ):
                         sel = sel[ymin:ymax, xmin:xmax]  # +1 to include final frame
                     else:
