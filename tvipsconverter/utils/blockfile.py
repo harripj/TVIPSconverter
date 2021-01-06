@@ -530,9 +530,16 @@ class bloFileWriter(QThread):
                 c = f"{indx}".zfill(6)
                 img = self.fh["ImageStream"][f"Frame_{c}"][:]
 
-                if "rescale" in self.options and self.options["rescale"]:
-                    img = imagefun.normalize_convert(img, dtype=np.uint8)
+                if "clip_max" in self.options and self.options["clip_max"] is not None:
+                    _max = self.options["clip_max"]
                 else:
+                    _max = None
+
+                if "rescale" in self.options and self.options["rescale"]:
+                    img = imagefun.normalize_convert(img, dtype=np.uint8, max=_max)
+                else:
+                    if _max is not None:
+                        img[img > _max] = _max
                     img = util.img_as_ubyte(img)
                 img.astype(endianess + "u1").tofile(f)
                 dp_head["ID"] += 1

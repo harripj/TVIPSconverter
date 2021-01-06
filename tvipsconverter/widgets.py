@@ -663,6 +663,11 @@ class ConnectedWidget(rawgui):
                     dp_scale,
                     # if rescale button is checked do rescale, otherwise no rescaling selected
                     rescale=self.checkBox_rescale.isChecked(),
+                    clip_max=(
+                        self.spinBox_clipmax_blo.value()
+                        if self.checkBox_clipmax_blo.isChecked()
+                        else None
+                    ),
                 )
             elif filetyp == ".hspy":
                 self.get_thread = hspf.hspyFileWriter(
