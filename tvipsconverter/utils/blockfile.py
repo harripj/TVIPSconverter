@@ -378,10 +378,7 @@ def file_reader(filename, endianess="<", mmap_mode=None, lazy=False, **kwds):
             "time_zone": time_zone,
             "notes": header["Note"],
         },
-        "Signal": {
-            "signal_type": "diffraction",
-            "record_by": "image",
-        },
+        "Signal": {"signal_type": "diffraction", "record_by": "image",},
     }
     # Create the axis objects for each axis
     dim = data.ndim
@@ -498,6 +495,7 @@ class bloFileWriter(QThread):
         )
 
         logger.debug("Created header of blo file")
+
         with open(self.path_blo, "wb") as f:
             # Write header
             header.tofile(f)
@@ -530,7 +528,32 @@ class bloFileWriter(QThread):
             for j, indx in enumerate(self.indexes):
                 dp_head.tofile(f)
                 c = f"{indx}".zfill(6)
-                img = self.fh["ImageStream"][f"Frame_{c}"][:]
+
+                # get reference to dset for recentering
+                frame = self.fh["ImageStream"][f"Frame_{c}"]
+                img = frame[:]
+
+                if "recenter" in self.options and self.options["recenter"]:
+                    # recenter frame according to the calculated frame center position
+                    try:
+                        center = frame.attrs["centercoordinate"]
+                        image_center = np.array(img.shape) // 2
+
+                        # roll by difference between center and frame_center
+                        difference = image_center - center
+
+                        # don't roll array, but rather pad and crop
+                        pad = tuple(
+                            (i if i > 0 else 0, -i if i < 0 else 0) for i in difference
+                        )
+                        slices = tuple(
+                            slice(None if i > 0 else -i, -i if i > 0 else None)
+                            for i in difference
+                        )
+                        # apply mask, if float then multiply, if bool then False values become 0 anyway
+                        img = np.pad(img, pad, mode="edge")[slices]
+                    except Exception as err:
+                        logger.warning("Frame not centered:", err)
 
                 if "binning" in self.options and self.options["binning"] is not None:
                     img = imagefun.bin_box(img, self.options["binning"], dtype=True)
