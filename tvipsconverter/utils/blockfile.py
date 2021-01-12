@@ -482,6 +482,23 @@ class bloFileWriter(QThread):
 
     def convert_to_blo(self):
         endianess = "<"
+
+        # add optional parameters to blo header too
+        # None is deafault for not set
+        _options = dict()
+        _options["Recentering"] = (
+            True if "recenter" in self.options and self.options["recenter"] else False
+        )
+        _options["Binning"] = (
+            self.options["binning"] if "binning" in self.options else None
+        )
+        _options["Rescale"] = (
+            self.options["rescale"] if "rescale" in self.options else None
+        )
+        _options["Clip value"] = (
+            self.options["clip_max"] if "clip_max" in self.options else None
+        )
+
         header, note = get_header(
             self.shape,
             self.scan_scale,
@@ -492,6 +509,7 @@ class bloFileWriter(QThread):
             Distortion_N01=1.0,
             Distortion_N09=1.0,
             Note="Reconstructed from TVIPS image stream",
+            **_options,
         )
 
         logger.debug("Created header of blo file")

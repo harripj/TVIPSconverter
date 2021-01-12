@@ -683,7 +683,7 @@ class ConnectedWidget(rawgui):
                         else None
                     ),
                     binning=binning,
-                    recenter=self.chechBox_center_frame.isChecked(),
+                    recenter=self.checkBox_center_frame.isChecked(),
                 )
             elif filetyp == ".hspy":
                 self.get_thread = hspf.hspyFileWriter(
