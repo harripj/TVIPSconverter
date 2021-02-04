@@ -531,7 +531,7 @@ class bloFileWriter(QThread):
             # Zero pad until next data block
             if f.tell() > int(header["Data_offset_2"]):
                 raise ValueError(
-                    "Signal navigation size does not match " "data dimensions."
+                    "Signal navigation size does not match data dimensions."
                 )
             zero_pad = int(header["Data_offset_2"]) - f.tell()
             np.zeros((zero_pad,), np.byte).tofile(f)
@@ -586,10 +586,14 @@ class bloFileWriter(QThread):
                 if "rescale" in self.options and self.options["rescale"]:
                     img = imagefun.normalize_convert(img, dtype=np.uint8, max=_max)
                 else:
-                    # apply clipping if required then convert to 8-bit
-                    if _max is not None:
-                        img[img > _max] = _max
-                    img = util.img_as_ubyte(img)
+                    if isinstance(img.ravel()[0], np.floating) and img.max() > 1.0:
+                        logger.warning('Cannot reliably change dtype for floats with maximum value >1. Rescaling instead.')
+                        img = imagefun.normalize_convert(img, dtype=np.uint8, max=_max)
+                    else:
+                        # apply clipping if required then convert to 8-bit
+                        if _max is not None:
+                            img[img > _max] = _max
+                        img = util.img_as_ubyte(img)
                 img.astype(endianess + "u1").tofile(f)
                 dp_head["ID"] += 1
                 self.update_gui_progress(j)
