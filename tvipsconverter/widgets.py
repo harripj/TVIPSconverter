@@ -101,6 +101,13 @@ class ConnectedWidget(rawgui):
         self.checkBox_2.stateChanged.connect(self.update_final_frame)
         # create a preview of the vbf
         self.pushButton_10.clicked.connect(self.update_vbf)
+        self.spinBox.valueChanged.connect(self.auto_read_hdf5)
+        self.spinBox_2.valueChanged.connect(self.auto_read_hdf5)
+        self.spinBox_15.valueChanged.connect(self.auto_read_hdf5)
+        self.spinBox_9.valueChanged.connect(self.auto_read_hdf5)
+        # self.comboBox_hyst_dir.textChanged.connect(self.auto_read_hdf5)
+        # self.comboBox_snakescan_dir.textChanged.connect(self.auto_read_hdf5)
+
         # connecting the horizontal sliders
         self.horizontalSlider.sliderReleased.connect(self.update_levels_vbf)
         self.horizontalSlider_2.sliderReleased.connect(self.update_levels_vbf)
@@ -162,13 +169,19 @@ class ConnectedWidget(rawgui):
                 scene = QGraphicsScene()
                 scene.addWidget(canvas)
                 self.graphicsView_3.setScene(scene)
-                self.graphicsView_3.fitInView(scene.sceneRect(),)
+                self.graphicsView_3.fitInView(
+                    scene.sceneRect(),
+                )
                 self.repaint_widget(self.graphicsView_3)
             except Exception as e:
                 logger.debug(f"Error: {e}")
 
     def save_vbf_to_hdf5(self):
         pass
+
+    def auto_update_vbf(self):
+        if self.checkBox.auto_update_vbf.isChecked():
+            self.update_vbf()
 
     def update_final_frame(self):
         # update x, y crop box values
@@ -291,7 +304,7 @@ class ConnectedWidget(rawgui):
                     or midy + yy - rr < 0
                     or midy + yy - rr > nis[0]
                 ):
-                    raise Exception("Virtual bright field aperture out " "of bounds")
+                    raise Exception("Virtual bright field aperture out of bounds")
             # plot the image and the circle over it
             if self.fig_prev is not None:
                 plt.close(self.fig_prev)
@@ -797,13 +810,15 @@ class ConnectedWidget(rawgui):
         # check cropping dimension > 0
         if not xmax - xmin > 0:
             self.update_line(
-                self.statusedit, f"Crop dimension incorrect. Crop x: {xmax - xmin}.",
+                self.statusedit,
+                f"Crop dimension incorrect. Crop x: {xmax - xmin}.",
             )
             self.remove_cropped_region()
             return
         if not ymax - ymin > 0:
             self.update_line(
-                self.statusedit, f"Crop dimension incorrect. Crop y: {ymax - ymin}.",
+                self.statusedit,
+                f"Crop dimension incorrect. Crop y: {ymax - ymin}.",
             )
             self.remove_cropped_region()
             return
@@ -820,7 +835,8 @@ class ConnectedWidget(rawgui):
 
         if self.fig_vbf is None:
             self.update_line(
-                self.statusedit, "No VBF figure plotted yet.",
+                self.statusedit,
+                "No VBF figure plotted yet.",
             )
             return
 
@@ -849,7 +865,8 @@ class ConnectedWidget(rawgui):
         self.fig_vbf.canvas.draw()
 
         self.update_line(
-            self.statusedit, f"Crop dimensions (x, y): ({xmax - xmin}, {ymax - ymin}).",
+            self.statusedit,
+            f"Crop dimensions (x, y): ({xmax - xmin}, {ymax - ymin}).",
         )
 
 
