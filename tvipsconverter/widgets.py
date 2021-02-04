@@ -541,7 +541,7 @@ class ConnectedWidget(rawgui):
                 f"hyst: {hyst}"
             )
             self.vbf_data = f.get_vbf_image(
-                sdimx, sdimy, start_frame, end_frame, hyst, snakescan
+                sdimx, sdimy, start_frame, end_frame, hyst, hyst_dir, snakescan, snakescan_dir
             )
             logger.debug("Succesfully created the VBF array")
             # save the settings for later storage

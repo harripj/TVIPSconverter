@@ -847,7 +847,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
+        hyst_dir='x',
         snakescan=True,
+        snakescan_dir='x',
         crop=None,
     ):
         """Calculate the indexes of the list of frames to consider for the
@@ -885,9 +887,17 @@ class hdf5Intermediate(h5py.File):
             sel = sel.reshape(sdimy, sdimx)
             # reverse correct even scan lines
             if snakescan:
-                sel[::2] = sel[::2][:, ::-1]
+                if snakescan_dir == 'x':
+                    sel[::2] = sel[::2][:, ::-1]
+                elif snakescan_dir == 'y':
+                    sel[:, ::2] = sel[:, ::2][::-1, :]
+                else:
+                    logger.warning(f'snakescan_dir: {snakescan_dir} undefined.')
             # hysteresis correction on even scan lines
-            sel[::2] = np.roll(sel[::2], hyst, axis=1)
+            if hyst_dir == 'x':
+                sel[::2] = np.roll(sel[::2], hyst, axis=1)
+            elif hyst_dir == 'y':
+                sel[:, ::2] = np.roll(sel[:, ::2], hyst, axis=0)
 
             # check for crop
             if crop is not None:
