@@ -125,7 +125,7 @@ def linscale(arr, min=None, max=None, nmin=0, nmax=1, dtype=np.float):
         max = workarr.max()
     else:
         workarr[workarr > max] = max
-
+    
     a = (nmax - nmin) / (max - min)
     result = (workarr - min) * a + nmin
     return result.astype(dtype)
@@ -239,7 +239,7 @@ def bin_box(arr, factor, axis=None, dtype=False):
         axis = tuple(range(arr.ndim))
     else:
         if isinstance(axis, (int, np.integer)):
-            axes = (axis,)
+            axis = (axis,)
         else:
             assert isinstance(
                 axis, (list, tuple)

@@ -770,7 +770,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
+        hyst_dir='x',
         snakescan=True,
+        snakescan_dir='x',
     ):
         # try to get the rotator data
         try:
@@ -788,7 +790,9 @@ class hdf5Intermediate(h5py.File):
             start_frame=start_frame,
             end_frame=end_frame,
             hyst=hyst,
+            hyst_dir=hyst_dir,
             snakescan=snakescan,
+            snakescan_dir=snakescan_dir,
         )
         logger.debug("Calculated scan indexes")
         if sdimx is None:
@@ -806,7 +810,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
+        hyst_dir='x',
         snakescan=True,
+        snakescan_dir='x',
         crop=None,
         binning=None,
     ):
@@ -816,7 +822,9 @@ class hdf5Intermediate(h5py.File):
             start_frame=start_frame,
             end_frame=end_frame,
             hyst=hyst,
+            hyst_dir=hyst_dir,
             snakescan=snakescan,
+            snakescan_dir=snakescan_dir,
             crop=crop,
         )
         logger.debug("Calculated scan indexes")

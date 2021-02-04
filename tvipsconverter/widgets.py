@@ -546,9 +546,9 @@ class ConnectedWidget(rawgui):
                 start_frame,
                 end_frame,
                 hyst,
-                self.combobox_hyst_dir.text(),
+                self.comboBox_hyst_dir.currentText(),
                 snakescan,
-                self.combobox_snakescan_dir.text(),
+                self.comboBox_snakescan_dir.currentText(),
             )
             logger.debug("Succesfully created the VBF array")
             # save the settings for later storage
@@ -667,7 +667,9 @@ class ConnectedWidget(rawgui):
                 start_frame,
                 end_frame,
                 hyst,
+                self.comboBox_hyst_dir.currentText(),
                 snakescan,
+                self.comboBox_snakescan_dir.currentText(),
                 crop=crop,
                 binning=binning,
             )
