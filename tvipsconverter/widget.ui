@@ -1166,9 +1166,9 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>-61</y>
+                <y>0</y>
                 <width>1069</width>
-                <height>699</height>
+                <height>717</height>
                </rect>
               </property>
               <layout class="QHBoxLayout" name="horizontalLayout_2">
@@ -1416,7 +1416,7 @@
                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Frame in the stream where the scan began&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                        </property>
                        <property name="text">
-                        <string>Scan start frame</string>
+                        <string>Start</string>
                        </property>
                       </widget>
                      </item>
@@ -1566,7 +1566,7 @@
                         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Frame at which the scanning stopped. If not auto-calculated must be (first frame + scan dim x * scan dim y)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                        </property>
                        <property name="text">
-                        <string>Scan stop frame</string>
+                        <string>Stop</string>
                        </property>
                       </widget>
                      </item>
@@ -1581,6 +1581,34 @@
                        <property name="text">
                         <string>pixels</string>
                        </property>
+                      </widget>
+                     </item>
+                     <item row="6" column="4">
+                      <widget class="QComboBox" name="comboBox_hyst_dir">
+                       <item>
+                        <property name="text">
+                         <string>x</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>y</string>
+                        </property>
+                       </item>
+                      </widget>
+                     </item>
+                     <item row="7" column="1">
+                      <widget class="QComboBox" name="comboBox_snakescan_dir">
+                       <item>
+                        <property name="text">
+                         <string>x</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>y</string>
+                        </property>
+                       </item>
                       </widget>
                      </item>
                     </layout>
