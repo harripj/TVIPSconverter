@@ -2136,13 +2136,15 @@
                    <property name="title">
                     <string>GroupBox</string>
                    </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QCheckBox" name="checkBox_diffraction_log_scale">
-                   <property name="text">
-                    <string>Log scale</string>
-                   </property>
+                   <layout class="QGridLayout" name="gridLayout_20">
+                    <item row="0" column="0">
+                     <widget class="QCheckBox" name="checkBox_diffraction_log_scale">
+                      <property name="text">
+                       <string>Log scale</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </widget>
                  </item>
                  <item>
