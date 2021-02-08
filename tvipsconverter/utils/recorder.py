@@ -420,6 +420,8 @@ class Recorder(QThread):
         """Scan size considering start and end frame"""
         if self.endbyte:
             size = self.endbyte
+        else:
+            return  # avoid unboundlocalerror below
         if self.startbyte:
             size = size - self.startbyte
 
@@ -531,7 +533,7 @@ class Recorder(QThread):
         frame = filter_image(frame, **self.improc)
         # put the frame in the hdf5 file under the group
         c = f"{self.current_frame-self.startim}".zfill(6)
-        ds = self.streamgroup.create_dataset(f"Frame_{c}", data=frame)
+        ds = self.streamgroup.create_dataset(hdf5Intermediate.frame_key(c), data=frame)
         for i in self.frame_header:
             ds.attrs[i[0]] = header[i[0]]
         # store the rotation index for finding start and stop later
@@ -710,6 +712,17 @@ class hdf5Intermediate(h5py.File):
         self.sdimx = dim
         self.sdimy = dim
 
+    @staticmethod
+    def frame_key(n):
+        return f"Frame_{str(n).zfill(6)}"
+
+    def get_frame(self, n):
+        key = self.frame_key(n)
+        try:
+            return np.array(self["ImageStream"][key])
+        except KeyError as err:
+            logging.error(err)
+
     def get_scan_info(self):
         """Return total frames, start frame, end frame, guessed scan dimensions
         as well as image dimensions"""
@@ -757,7 +770,7 @@ class hdf5Intermediate(h5py.File):
             logger.debug("Could not calculate scan dimensions")
             dim = None
         try:
-            imdimx, imdimy = self["ImageStream"]["Frame_000000"].shape
+            imdimx, imdimy = self.get_frame(0).shape
         except Exception:
             imdimx = None
             imdimy = None
@@ -770,9 +783,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
-        hyst_dir='x',
+        hyst_dir="x",
         snakescan=True,
-        snakescan_dir='x',
+        snakescan_dir="x",
     ):
         # try to get the rotator data
         try:
@@ -810,9 +823,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
-        hyst_dir='x',
+        hyst_dir="x",
         snakescan=True,
-        snakescan_dir='x',
+        snakescan_dir="x",
         crop=None,
         binning=None,
     ):
@@ -833,7 +846,7 @@ class hdf5Intermediate(h5py.File):
         if sdimy is None:
             sdimy = self.sdimy
         try:
-            imshap = self["ImageStream"]["Frame_000000"].shape
+            imshap = self.get_frame(0).shape
             if binning is not None:
                 assert all(
                     not i % binning for i in imshap

@@ -1,8 +1,13 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QFileDialog, QGraphicsScene
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import QByteArray, QThread, pyqtSignal
+from PyQt5.QtGui import QIcon, QImage, QPixmap
+import pyqtgraph as pg
 import sys
+
+import matplotlib
+
+matplotlib.use("Qt5Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -75,6 +80,12 @@ class ConnectedWidget(rawgui):
         self.fig_vbf = None
         self.vbf_im = None
 
+        # init attributes for live view diffraction
+        self.fig_diffraction = None
+        self.ai_diffraction = None
+        self.mouse_in_axes = False  # interactive flags
+        self.mouse_pressed_vbf = False
+
         self.connectUI()
 
     def connectUI(self):
@@ -101,12 +112,14 @@ class ConnectedWidget(rawgui):
         self.checkBox_2.stateChanged.connect(self.update_final_frame)
         # create a preview of the vbf
         self.pushButton_10.clicked.connect(self.update_vbf)
-        self.spinBox.valueChanged.connect(self.auto_read_hdf5)
-        self.spinBox_2.valueChanged.connect(self.auto_read_hdf5)
-        self.spinBox_15.valueChanged.connect(self.auto_read_hdf5)
-        self.spinBox_9.valueChanged.connect(self.auto_read_hdf5)
-        # self.comboBox_hyst_dir.textChanged.connect(self.auto_read_hdf5)
-        # self.comboBox_snakescan_dir.textChanged.connect(self.auto_read_hdf5)
+        self.spinBox.valueChanged.connect(self.auto_update_vbf)
+        self.spinBox_2.valueChanged.connect(self.auto_update_vbf)
+        self.spinBox_15.valueChanged.connect(self.auto_update_vbf)
+        self.spinBox_9.valueChanged.connect(self.auto_update_vbf)
+        self.comboBox_hyst_dir.currentTextChanged.connect(self.auto_update_vbf)
+        self.comboBox_snakescan_dir.currentTextChanged.connect(self.auto_update_vbf)
+        self.checkBox_6.stateChanged.connect(self.auto_update_vbf)
+        self.checkBox_12.stateChanged.connect(self.auto_update_vbf)
 
         # connecting the horizontal sliders
         self.horizontalSlider.sliderReleased.connect(self.update_levels_vbf)
@@ -162,25 +175,18 @@ class ConnectedWidget(rawgui):
             unit = (mx - mn) / 100
             climmin = mn + vmin * unit
             climmax = mn + (vmax + 1) * unit
-            try:
-                self.vbf_im.set_clim(climmin, climmax)
-                canvas = FigureCanvas(self.fig_vbf)
-                canvas.draw()
-                scene = QGraphicsScene()
-                scene.addWidget(canvas)
-                self.graphicsView_3.setScene(scene)
-                self.graphicsView_3.fitInView(
-                    scene.sceneRect(),
-                )
-                self.repaint_widget(self.graphicsView_3)
-            except Exception as e:
-                logger.debug(f"Error: {e}")
+
+            self.vbf_im.set_clim(climmin, climmax)
+            # self.fig_vbf.axes[0].update_artist(self.vbf_im)
+            self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+
+            logger.debug("updated levels vbf")
 
     def save_vbf_to_hdf5(self):
         pass
 
     def auto_update_vbf(self):
-        if self.checkBox.auto_update_vbf.isChecked():
+        if self.checkBox_auto_update_vbf.isChecked():
             self.update_vbf()
 
     def update_final_frame(self):
@@ -520,89 +526,259 @@ class ConnectedWidget(rawgui):
             # check if an hdf5 file is selected
             if not path_hdf5:
                 raise Exception("No valid HDF5 file selected!")
+
+            scan_exp_data = self.get_scan_export_data()
             # try to read the info from the file
             f = rec.hdf5Intermediate(path_hdf5)
-            # none or 0 means default
-            start_frame = None
-            end_frame = None
-            sdimx = None
-            sdimy = None
-            hyst = 0
-            snakescan = True
-            # overwrite standard info depending on gui
-            if self.checkBox_2.checkState():
-                # use custom scanning
-                sdimx = self.spinBox.value()
-                sdimy = self.spinBox_2.value()
-            if self.checkBox_11.checkState():
-                # use custom frames
-                start_frame = self.spinBox_15.value()
-                end_frame = self.spinBox_16.value()
-            # use hysteresis or not
-            if self.checkBox_6.checkState():
-                hyst = self.spinBox_9.value()
-            # use snake scan or not
-            if self.checkBox_12.checkState():
-                snakescan = True
-            else:
-                snakescan = False
+
             # calculate the image
-            logger.debug(
-                f"We try to create a VBF image with data: "
-                f"S.F. {start_frame}, E.F. {end_frame}, "
-                f"Dims: x {sdimx} y {sdimy},"
-                f"hyst: {hyst}"
-            )
-            self.vbf_data = f.get_vbf_image(
-                sdimx,
-                sdimy,
-                start_frame,
-                end_frame,
-                hyst,
-                self.comboBox_hyst_dir.currentText(),
-                snakescan,
-                self.comboBox_snakescan_dir.currentText(),
-            )
+            logger.debug(f"We try to create a VBF image with data: {scan_exp_data}.")
+            self.vbf_data = f.get_vbf_image(**scan_exp_data)
             logger.debug("Succesfully created the VBF array")
+
             # save the settings for later storage
             self.vbf_sets = {
-                "start_frame": start_frame,
-                "end_frame": end_frame,
-                "scan_dim_x": sdimx,
-                "scan_dim_y": sdimy,
-                "hysteresis": hyst,
-                "winding_scan": snakescan,
+                "start_frame": scan_exp_data["start_frame"],
+                "end_frame": scan_exp_data["end_frame"],
+                "scan_dim_x": scan_exp_data["sdimx"],
+                "scan_dim_y": scan_exp_data["sdimy"],
+                "hysteresis": scan_exp_data["hyst"],
+                "winding_scan": scan_exp_data["snakescan"],
             }
 
             # plot the image and store it for further use. First close prior
             # image
-            if self.fig_vbf is not None:
-                plt.close(self.fig_vbf)
-            self.fig_vbf = plt.figure(
-                frameon=False,
-                figsize=(self.vbf_data.shape[1] / 100, self.vbf_data.shape[0] / 100),
-            )
-            canvas = FigureCanvas(self.fig_vbf)
-            ax = plt.Axes(self.fig_vbf, [0.0, 0.0, 1.0, 1.0])
-            ax.set_axis_off()
-            self.fig_vbf.add_axes(ax)
-            self.vbf_im = ax.imshow(self.vbf_data, cmap="plasma")
-            canvas.draw()
-            scene = QGraphicsScene()
-            scene.addWidget(canvas)
-            self.graphicsView_3.setScene(scene)
-            self.graphicsView_3.fitInView(scene.sceneRect())
-            self.repaint_widget(self.graphicsView_3)
-            self.update_levels_vbf()
-            self.update_line(self.statusedit, "Succesfully created VBF.")
-            yshap, xshap = self.vbf_data.shape
-            self.update_line(self.lineEdit_10, f"Size: {xshap}x{yshap}.")
-            f.close()
+            if self.fig_vbf is None:
+                self.fig_vbf = plt.Figure(
+                    frameon=False,
+                    figsize=(
+                        self.vbf_data.shape[1] / 100,
+                        self.vbf_data.shape[0] / 100,
+                    ),
+                )
+
+                self.canvas_vbf = FigureCanvas(self.fig_vbf)
+                ax = plt.Axes(self.fig_vbf, [0.0, 0.0, 1.0, 1.0])
+                ax.set_axis_off()
+                self.fig_vbf.add_axes(ax)
+                self.vbf_im = ax.imshow(self.vbf_data, cmap="plasma")
+
+                # draw crosshairs
+                self.crosshair_horizontal = ax.axhline(0, color="k", alpha=0.5)
+                self.crosshair_vertical = ax.axvline(0, color="k", alpha=0.5)
+
+                # connect interactive features
+                self.cid = []
+                self.cid.append(
+                    self.fig_vbf.canvas.mpl_connect(
+                        "figure_enter_event", self.mouse_enter_axes_vbf
+                    )
+                )
+                self.cid.append(
+                    self.fig_vbf.canvas.mpl_connect(
+                        "figure_leave_event", self.mouse_leave_axes_vbf
+                    )
+                )
+                self.cid.append(
+                    self.fig_vbf.canvas.mpl_connect(
+                        "motion_notify_event", self.mouse_moved_update_diffraction
+                    )
+                )
+                self.cid.append(
+                    self.canvas_vbf.mpl_connect(
+                        "button_press_event", self.mouse_clicked_vbf
+                    )
+                )
+                self.cid.append(
+                    self.fig_vbf.canvas.mpl_connect(
+                        "button_release_event", self.mouse_released_vbf
+                    )
+                )
+
+                self.canvas_vbf.draw()
+                self.scene = QGraphicsScene()
+                self.scene.addWidget(self.canvas_vbf)
+                self.graphicsView_3.setScene(self.scene)
+                self.graphicsView_3.fitInView(self.scene.sceneRect())
+                # self.repaint_widget(self.graphicsView_3)
+                self.update_levels_vbf()
+                self.update_line(self.statusedit, "Succesfully created VBF.")
+                yshap, xshap = self.vbf_data.shape
+                self.update_line(self.lineEdit_10, f"Size: {xshap}x{yshap}.")
+                logger.debug("Draw")
+            else:
+                self.vbf_im.set_array(self.vbf_data)
+                self.fig_vbf.axes[0].draw_artist(self.vbf_im)
+                self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+                logger.debug("Blit")
+
+            logger.debug(f"Callbacks: {self.fig_vbf.canvas.callbacks.callbacks}")
+
+            # plot initial diffraction pattern (index 0)
+            # self.diffraction_pattern = pg.ImageItem(image=f.get_frame(0))
+            # # gl = pg.GraphicsLayout()
+            # # vb = gl.addViewBox()
+            # # self.graphicsView_diffraction.setCentralItem(gl)
+            # # vb.addItem(self.diffraction_pattern)
+            # # vb.autoRange()
+            # # self.graphicsView_diffraction.addWidget(self.diffraction_pattern)
+            # frame = f.get_frame(0)
+            # logger.debug("frame made")
+            # qi = QImage(f.shape[1], f.shape[0], QImage.Format_Grayscale16)
+            # logger.debug("qimage made made")
+            # qi.fromData(QByteArray(frame.tobytes()))
+            # logger.debug("qbytes made")
+            # scene = QGraphicsScene()
+            # scene.addWidget(qi)
+            # self.graphicsView_diffraction.setScene(scene)
+            # self.repaint_widget(self.graphicsView_diffraction)
+
+            if self.fig_diffraction is None:
+                self.fig_diffraction = plt.figure(
+                    frameon=False,
+                    figsize=(
+                        self.vbf_data.shape[1] / 100,
+                        self.vbf_data.shape[0] / 100,
+                    ),
+                )
+
+                canvas = FigureCanvas(self.fig_diffraction)
+                ax = plt.Axes(self.fig_diffraction, [0.0, 0.0, 1.0, 1.0])
+                ax.set_axis_off()
+                self.fig_diffraction.add_axes(ax)
+                self.ai_diffraction = ax.imshow(f.get_frame(0), cmap="gray")
+                canvas.draw()
+                self.scene_vbf = QGraphicsScene()
+                self.scene_vbf.addWidget(canvas)
+                self.graphicsView_diffraction.setScene(self.scene_vbf)
+                self.graphicsView_diffraction.fitInView(self.scene_vbf.sceneRect())
 
             # add settings to hdf5 file, do this after file close
+            f.close()
             rec.write_scan_parameters_hdf5(path_hdf5, **self.vbf_sets)
         except Exception as e:
             self.update_line(self.statusedit, f"Error: {e}")
+
+    def mouse_enter_axes_vbf(self, event):
+        self.mouse_in_axes = True
+
+    def mouse_leave_axes_vbf(self, event):
+        self.mouse_in_axes = False
+
+    def mouse_clicked_vbf(self, event):
+        if self.mouse_in_axes:
+            self.mouse_pressed_vbf = True
+
+            # get background for redrawing
+            self.crosshair_horizontal.set_ydata((event.ydata,) * 2)
+            self.crosshair_vertical.set_xdata((event.xdata,) * 2)
+            self.crosshair_horizontal.set_alpha(0)
+            self.crosshair_vertical.set_alpha(0)
+
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
+            self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+
+            self.background = self.fig_vbf.canvas.copy_from_bbox(
+                self.fig_vbf.axes[0].bbox
+            )
+
+            self.crosshair_horizontal.set_alpha(0.5)
+            self.crosshair_vertical.set_alpha(0.5)
+
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
+            self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+
+            # logger.debug(len(self.fig_vbf.axes[0].lines))
+
+    def mouse_released_vbf(self, event):
+        self.mouse_pressed_vbf = False
+
+    def mouse_moved_update_diffraction(self, event):
+        if self.mouse_in_axes and self.mouse_pressed_vbf:
+            # mouse in correct axes (vbf) and clicked
+            # therefore draw correct diffraction frame
+
+            # update crosshairs and draw
+            self.crosshair_horizontal.set_ydata((event.ydata,) * 2)
+            self.crosshair_vertical.set_xdata((event.xdata,) * 2)
+
+            self.fig_vbf.canvas.restore_region(self.background)
+
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
+            self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
+            self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+
+            scan_exp_data = self.get_scan_export_data()
+
+            # open hdf
+            path_hdf5 = self.lineEdit_4.text()
+            f = rec.hdf5Intermediate(path_hdf5)
+
+            # calculate frame number
+            crop = (
+                int(event.xdata),
+                int(event.xdata + 1),
+                int(event.ydata),
+                int(event.ydata + 1),
+            )
+            number = f.calculate_scan_export_indexes(crop=crop, **scan_exp_data)
+            if len(number) != 1:
+                logger.debug(f"Frame numbers: {number}")
+            frame = f.get_frame(number[0])
+
+            # possible log scaling
+            if self.checkBox_diffraction_log_scale.isChecked():
+                frame = np.log10(frame - frame.min() + 1)
+            logger.debug(type(frame))
+
+            self.ai_diffraction.set_array(frame)
+            self.ai_diffraction.set_clim(frame.min(), frame.max())
+            self.fig_diffraction.axes[0].draw_artist(self.ai_diffraction)
+            self.fig_diffraction.canvas.blit(self.fig_diffraction.axes[0].bbox)
+            logger.debug(
+                f"No DPs in axes: {len(self.fig_diffraction.axes[0].images)}"
+            )  # should be 1
+
+            self.lineEdit_diffraction_coordinate.setText(
+                f"(x, y) = ({int(event.xdata)}, {int(event.ydata)})"
+            )
+
+            self.lineEdit_diffraction_coordinate_linear.setText(f"{number[0]}")
+
+            f.close()
+
+    def get_scan_export_data(self):
+        """The keys below should exactly match arg names for hdf5Intermediate.get_blo_export_data."""
+        out = dict()
+        # overwrite standard info depending on gui
+        if self.checkBox_2.checkState():
+            # use custom scanning
+            out["sdimx"] = self.spinBox.value()
+            out["sdimy"] = self.spinBox_2.value()
+        else:
+            out["sdimx"] = out["sdimy"] = None
+        if self.checkBox_11.checkState():
+            # use custom frames
+            out["start_frame"] = self.spinBox_15.value()
+            out["end_frame"] = self.spinBox_16.value()
+        else:
+            out["start_frame"] = out["end_frame"] = None
+        # use hysteresis or not
+        out["hyst"] = self.spinBox_9.value() if self.checkBox_6.checkState() else 0
+        out[
+            "hyst_dir"
+        ] = self.comboBox_hyst_dir.currentText()  # irrelevant if hyst is False
+        # use snake scan or not
+        out["snakescan"] = self.checkBox_12.checkState()
+        out[
+            "snakescan_dir"
+        ] = (
+            self.comboBox_snakescan_dir.currentText()
+        )  # irrelevant if snakescan is False
+
+        return out
 
     def write_to_file(self):
         """Export the data to a specific file format in an incremental way"""
@@ -617,41 +793,20 @@ class ConnectedWidget(rawgui):
             # try to read the info from the file
             f = rec.hdf5Intermediate(path_hdf5)
             # none or 0 means default
-            start_frame = None
-            end_frame = None
-            sdimx = None
-            sdimy = None
-            hyst = 0
-            snakescan = False
-            # overwrite standard info depending on gui
-            if self.checkBox_2.checkState():
-                # use custom scanning
-                sdimx = self.spinBox.value()
-                sdimy = self.spinBox_2.value()
-            if self.checkBox_11.checkState():
-                # use custom frames
-                start_frame = self.spinBox_15.value()
-                end_frame = self.spinBox_16.value()
-            # use hysteresis or not
-            if self.checkBox_6.checkState():
-                hyst = self.spinBox_9.value()
-            # use snake scan or not
-            if self.checkBox_12.checkState():
-                snakescan = True
-            else:
-                snakescan = False
+
+            # get all relevant scan export data
+            scan_exp_data = self.get_scan_export_data()
+
             # we set the scale of scan and dp
             scan_scale = self.doubleSpinBox_2.value()
             dp_scale = self.doubleSpinBox_3.value()
             # calculate the image
             filetyp = self.comboBox.currentText()
+
             logger.debug(
-                f"We try to create a {filetyp} file with data: "
-                f"S.F. {start_frame}, E.F. {end_frame}, "
-                f"Dims: x {sdimx} y {sdimy},"
-                f"hyst: {hyst}, snakescan: {snakescan}"
+                f"We try to create a {filetyp} file with data: {scan_exp_data}."
             )
-            logger.debug("Calculating shape and indexes")
+            logger.debug("Calculating shape and indexes...")
 
             # check crop desired
             if self.checkBox_apply_crop.isChecked():
@@ -675,20 +830,13 @@ class ConnectedWidget(rawgui):
             )
 
             shape, indexes = f.get_blo_export_data(
-                sdimx,
-                sdimy,
-                start_frame,
-                end_frame,
-                hyst,
-                self.comboBox_hyst_dir.currentText(),
-                snakescan,
-                self.comboBox_snakescan_dir.currentText(),
-                crop=crop,
-                binning=binning,
+                crop=crop, binning=binning, **scan_exp_data
             )
+
             logger.debug(f"Shape: {shape}")
             logger.debug(f"Starting to write {filetyp} file")
             self.update_line(self.statusedit, f"Writing {filetyp} file...")
+
             if filetyp == ".blo":
                 self.get_thread = blf.bloFileWriter(
                     f,
@@ -713,6 +861,7 @@ class ConnectedWidget(rawgui):
                 )
             else:
                 raise NotImplementedError("Unrecognized file type")
+
             self.get_thread.increase_progress.connect(self.increase_progbar)
             self.get_thread.finish.connect(self.done_bloexport)
             self.get_thread.start()
