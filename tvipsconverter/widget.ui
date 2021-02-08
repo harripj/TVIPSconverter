@@ -2134,7 +2134,7 @@
                  <item>
                   <widget class="QGroupBox" name="groupBox_14">
                    <property name="title">
-                    <string>GroupBox</string>
+                    <string>Display settings</string>
                    </property>
                    <layout class="QGridLayout" name="gridLayout_20">
                     <item row="0" column="0">
