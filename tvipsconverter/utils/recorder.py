@@ -574,6 +574,7 @@ class Recorder(QThread):
                 # and reintroduce offset
                 ds.attrs["centercoordinate"] = coords_center + (center - side // 2)
             else:
+                logger.info("No peaks found in crop, trying full frame.")
                 ## no peaks found
                 _coords = find_center(frame, sigma)
                 if _coords.size:
@@ -586,6 +587,9 @@ class Recorder(QThread):
                     # and reintroduce offset
                     ds.attrs["centercoordinate"] = coords_center
                 else:
+                    logger.info(
+                        "No peaks found in full frame, centercoordinate set to (Nan, Nan)."
+                    )
                     ## no peak found, default to NaN
                     ds.attrs["centercoordinate"] = np.array((np.nan, np.nan))
 
