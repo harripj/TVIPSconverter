@@ -548,8 +548,14 @@ class Recorder(QThread):
                 center[0] - side // 2 : center[0] + side // 2,
                 center[1] - side // 2 : center[1] + side // 2,
             ]
+
+            def find_center(arr, sigma, mode="nearest"):
+                blurred = gaussian_filter(arr, sigma, mode=mode)
+                coords = peak_local_max(blurred, sigma, exclude_border=1)
+                return coords
+
             # blur crop and find maximum -> use as center location
-            blurred = gaussian_filter(crop, sigma, mode="nearest")
+
             # add crop offset (center - side//2) to get actual location on frame
 
             # NOTE: argmax does not work in some cases where direct beam
@@ -558,13 +564,30 @@ class Recorder(QThread):
             # coords_center =  np.unravel_index(blurred.argmax(), crop.shape)
 
             # get all peaks in blurred image (at least sigma away from each other)
-            coords = peak_local_max(blurred, sigma, exclude_border=1)
-            # get peak closest to center
-            coords_center = coords[
-                np.linalg.norm(coords - np.array(blurred.shape) // 2, axis=1).argmin()
-            ]
-            # and reintroduce offset
-            ds.attrs["centercoordinate"] = coords_center + (center - side // 2)
+            coords = find_center(crop, sigma)
+
+            if coords.size:
+                # get peak closest to center
+                coords_center = coords[
+                    np.linalg.norm(coords - np.array(crop.shape) // 2, axis=1).argmin()
+                ]
+                # and reintroduce offset
+                ds.attrs["centercoordinate"] = coords_center + (center - side // 2)
+            else:
+                ## no peaks found
+                _coords = find_center(frame, sigma)
+                if _coords.size:
+                    # get peak closest to center
+                    coords_center = _coords[
+                        np.linalg.norm(
+                            _coords - np.array(frame.shape) // 2, axis=1
+                        ).argmin()
+                    ]
+                    # and reintroduce offset
+                    ds.attrs["centercoordinate"] = coords_center
+                else:
+                    ## no peak found, default to NaN
+                    ds.attrs["centercoordinate"] = np.array((np.nan, np.nan))
 
         # immediately calculate and store the VBF intensity if required
         if self.vbfproc["calcvbf"]:
@@ -770,9 +793,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
-        hyst_dir='x',
+        hyst_dir="x",
         snakescan=True,
-        snakescan_dir='x',
+        snakescan_dir="x",
     ):
         # try to get the rotator data
         try:
@@ -810,9 +833,9 @@ class hdf5Intermediate(h5py.File):
         start_frame=None,
         end_frame=None,
         hyst=0,
-        hyst_dir='x',
+        hyst_dir="x",
         snakescan=True,
-        snakescan_dir='x',
+        snakescan_dir="x",
         crop=None,
         binning=None,
     ):
