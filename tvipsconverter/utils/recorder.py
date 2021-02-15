@@ -561,12 +561,18 @@ class Recorder(QThread):
 
             # get all peaks in blurred image (at least sigma away from each other)
             coords = peak_local_max(blurred, sigma, exclude_border=1)
-            # get peak closest to center
-            coords_center = coords[
-                np.linalg.norm(coords - np.array(blurred.shape) // 2, axis=1).argmin()
-            ]
-            # and reintroduce offset
-            ds.attrs["centercoordinate"] = coords_center + (center - side // 2)
+            if coords.size:
+                # get peak closest to center
+                coords_center = coords[
+                    np.linalg.norm(
+                        coords - np.array(blurred.shape) // 2, axis=1
+                    ).argmin()
+                ]
+                # and reintroduce offset
+                ds.attrs["centercoordinate"] = coords_center + (center - side // 2)
+            else:
+                ## no peaks found
+                ds.attrs["centercoordinate"] = np.array((np.nan, np.nan))
 
         # immediately calculate and store the VBF intensity if required
         if self.vbfproc["calcvbf"]:
