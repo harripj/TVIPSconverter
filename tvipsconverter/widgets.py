@@ -564,8 +564,8 @@ class ConnectedWidget(rawgui):
                 self.vbf_im = ax.imshow(self.vbf_data, cmap="plasma")
 
                 # draw crosshairs
-                self.crosshair_horizontal = ax.axhline(0, color="k", alpha=0.5)
-                self.crosshair_vertical = ax.axvline(0, color="k", alpha=0.5)
+                self.crosshair_horizontal = ax.axhline(0, color="k", alpha=0)
+                self.crosshair_vertical = ax.axvline(0, color="k", alpha=0)
 
                 # connect interactive features
                 self.cid = []
@@ -596,6 +596,11 @@ class ConnectedWidget(rawgui):
                 )
 
                 self.canvas_vbf.draw()
+                # get bg after initial draw
+                self.background = self.fig_vbf.canvas.copy_from_bbox(
+                    self.fig_vbf.axes[0].bbox
+                )
+
                 self.scene = QGraphicsScene()
                 self.scene.addWidget(self.canvas_vbf)
                 self.graphicsView_3.setScene(self.scene)
@@ -609,7 +614,18 @@ class ConnectedWidget(rawgui):
             else:
                 self.vbf_im.set_array(self.vbf_data)
                 self.fig_vbf.axes[0].draw_artist(self.vbf_im)
+
+                self.crosshair_horizontal.set_alpha(0)
+                self.crosshair_vertical.set_alpha(0)
+
+                self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
+                self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
                 self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
+
+                self.background = self.fig_vbf.canvas.copy_from_bbox(
+                    self.fig_vbf.axes[0].bbox
+                )
+
                 logger.debug("Blit")
 
             logger.debug(f"Callbacks: {self.fig_vbf.canvas.callbacks.callbacks}")
@@ -669,19 +685,13 @@ class ConnectedWidget(rawgui):
         if self.mouse_in_axes:
             self.mouse_pressed_vbf = True
 
-            # get background for redrawing
+            logger.info("clicked.")
+            # restore bg
+            self.fig_vbf.canvas.restore_region(self.background)
+
+            # update artists and blit
             self.crosshair_horizontal.set_ydata((event.ydata,) * 2)
             self.crosshair_vertical.set_xdata((event.xdata,) * 2)
-            self.crosshair_horizontal.set_alpha(0)
-            self.crosshair_vertical.set_alpha(0)
-
-            self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
-            self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
-            self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
-
-            self.background = self.fig_vbf.canvas.copy_from_bbox(
-                self.fig_vbf.axes[0].bbox
-            )
 
             self.crosshair_horizontal.set_alpha(0.5)
             self.crosshair_vertical.set_alpha(0.5)
@@ -689,7 +699,6 @@ class ConnectedWidget(rawgui):
             self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
             self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
             self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
-
             # logger.debug(len(self.fig_vbf.axes[0].lines))
 
     def mouse_released_vbf(self, event):
@@ -697,15 +706,16 @@ class ConnectedWidget(rawgui):
 
     def mouse_moved_update_diffraction(self, event):
         if self.mouse_in_axes and self.mouse_pressed_vbf:
+            logger.info("Moved")
             # mouse in correct axes (vbf) and clicked
             # therefore draw correct diffraction frame
+
+            # restore bg
+            self.fig_vbf.canvas.restore_region(self.background)
 
             # update crosshairs and draw
             self.crosshair_horizontal.set_ydata((event.ydata,) * 2)
             self.crosshair_vertical.set_xdata((event.xdata,) * 2)
-
-            self.fig_vbf.canvas.restore_region(self.background)
-
             self.fig_vbf.axes[0].draw_artist(self.crosshair_horizontal)
             self.fig_vbf.axes[0].draw_artist(self.crosshair_vertical)
             self.fig_vbf.canvas.blit(self.fig_vbf.axes[0].bbox)
